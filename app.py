@@ -95,13 +95,19 @@ INV_FIELD = {v:k for k,v in FIELD_MAP.items()}
 
 # ─────────────────────────────────────────────────────────────
 # 5. SESSION STATE
+# Initializes all persistent variables used across reruns.
+# Streamlit reruns the script on every interaction, so we store:
+# - conversation history
+# - current stage of hiring workflow
+# - candidate details
+# - technical questions
 # ─────────────────────────────────────────────────────────────
 def init_session():
     for k,v in {
         "messages":[],"stage":"greeting","candidate":{},
         "tech_questions":[],"q_index":0,"ended":False,
         "sentiment_log":[],"lang":"English","greeted":False,
-        "dark":False,"show_robot":True,"resume_parsed":False,
+        "dark":True,"show_robot":True,"resume_parsed":False,
     }.items():
         if k not in st.session_state:
             st.session_state[k] = v
@@ -112,6 +118,9 @@ if st.session_state.greeted and len(st.session_state.messages) > 1:
 
 # ─────────────────────────────────────────────────────────────
 # 6. CSS  (theme-aware)
+# DYNAMIC CSS INJECTION
+# Custom theme-aware styling.
+# The UI switches between light and dark themes 
 # ─────────────────────────────────────────────────────────────
 def inject_css():
     d = st.session_state.dark
@@ -286,6 +295,10 @@ def sentiment(text):
 
 # ─────────────────────────────────────────────────────────────
 # 9. LLM
+# LLM INTERACTION LAYER
+# Handles communication with Groq API (Llama 3.3 70B).
+# Builds conversation history, sends structured prompts,
+# and safely handles rate limits / API errors.
 # ─────────────────────────────────────────────────────────────
 def call_llm(sys_p, user_msg, history=None):
     try:
@@ -355,7 +368,7 @@ Stage: {stage}
     return base + "\nTask:\n" + sm.get(stage, "Continue naturally.")
 
 # ─────────────────────────────────────────────────────────────
-# 11. TECHNICAL QUESTIONS
+# 11. TECHNICAL QUESTIONS GENERATOR
 # ─────────────────────────────────────────────────────────────
 def gen_questions(stack, exp):
     prompt = f"""Senior technical interviewer. Generate exactly 4 interview questions for:
